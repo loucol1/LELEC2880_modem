@@ -1,11 +1,3 @@
-
-N = 128;
-Lc = 16;
-SNR = 10; %[dB]
-nbr_OFDM_symbols = 5;
-main()
-
-
 %cp est un vecteur de cyclic prefix de taille Lc = 16
 function w = OFDM_symbol(cp)
 %création de la sequence de symboles à envoyer
@@ -52,12 +44,13 @@ nbr_error = sum(send ~= received);
 symbol_error_rate = nbr_error/length(send);
 end
 
-function retour = main()
+
+N = 128;
+Lc = 16;
+SNR = 10; %[dB]
+nbr_OFDM_symbols = 5;
+
 vect = vecteur_OFDM_symbol();
-
-retour = 1;
-end
-
 
 
 
