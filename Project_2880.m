@@ -1,13 +1,25 @@
 
-N = 128;
-Lc = 16;
-SNR = 10; %[dB]
-nbr_OFDM_symbols = 5;
-main()
 
+function main()
+global N;
+N = 128;
+global Lc;
+Lc = 16;
+global SNR;
+SNR = 50; %[dB]
+global nbr_OFDM_symbols;
+nbr_OFDM_symbols = 2;
+%b= [1+1i, -1-1i];
+%a = awgn(b);
+s = vecteur_ofdm_symbols();
+r = decoder(s);
+%test = calcul_error(s, r)
+
+end
 
 %cp est un vecteur de cyclic prefix de taille Lc = 16
 function w = OFDM_symbol(cp)
+global N;
 %création de la sequence de symboles à envoyer
 QAM = [1+1i, 1-1i, -1+1i, -1-1i];
 random = randi([1,4], 1, 128);
@@ -24,6 +36,9 @@ w = [cp, w];
 end
 
 function y = vecteur_ofdm_symbols()
+global N;
+global Lc;
+global nbr_OFDM_symbols;
 y = zeros(1,nbr_OFDM_symbols*(N+Lc));
 y(1:Lc+N) = OFDM_symbol(zeros(1,Lc));
 for a = 1:nbr_OFDM_symbols
@@ -32,10 +47,14 @@ end
 end
 
 function r = channel(vecteur_ofdm_symbols)
+global SNR;
 r = awgn(vecteur_ofdm_symbols, SNR);
 end
 
 function y = decoder(r)
+global N;
+global Lc;
+global nbr_OFDM_symbols;
 y = zeros(1, nbr_OFDM_symbols*N);
 without_cp = zeros(1, N);
 calcul_fft = zeros(1, N);
@@ -52,11 +71,6 @@ nbr_error = sum(send ~= received);
 symbol_error_rate = nbr_error/length(send);
 end
 
-function retour = main()
-vect = vecteur_OFDM_symbol();
-
-retour = 1;
-end
 
 
 
