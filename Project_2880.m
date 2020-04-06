@@ -13,7 +13,7 @@ global nbr_OFDM_symbols;
 nbr_OFDM_symbols = 10;
 global Pmax;
 Pmax = 1;
-SNR = 3; %dB
+SNR = 12; %dB
 H = fft(h, 128);
 [vecteur_ofdm_symbol, vector_data_brut]  = vecteur_ofdm_symbols();
 L = length(vecteur_ofdm_symbol);
@@ -23,7 +23,16 @@ N0 = Esym/SNR; %variance du bruit
 H_carre = abs(H).^2;
 N0 = N0*ones(length(H_carre), 1);
 bruit_sur_canal = N0./H_carre;
-mu = water_level(bruit_sur_canal)
+mu = water_level(bruit_sur_canal); %bruit_sur_canal = sigma_n_carre/|H_n|^2
+sigma_x_carre = mu*ones(length(bruit_sur_canal),1) - bruit_sur_canal;
+signe_sigma = sigma_x_carre > 0;
+sigma_x_carre = sigma_x_carre .* signe_sigma; %met les valeurs negatives a zero
+SNR = sigma_x_carre ./ N0;
+Perror_target = 10^-5;
+gamma = (2/3)*(erfcinv(Perror_target/2))^2;
+nbr_bits = (1/2)*log2(1+SNR/gamma);
+
+
 
 
 function mu = water_level(bruit_sur_canal)
