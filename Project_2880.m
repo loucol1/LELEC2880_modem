@@ -1,26 +1,33 @@
 
 
 clear all;
+load('CIR.mat', 'h');
+IRchannel = h;
+
+
 global N;
 N = 128;
 global Lc;
 Lc = 16;
 global nbr_OFDM_symbols;
-nbr_OFDM_symbols = 100;
-%b= [1+1i, -1-1i];
-%a = awgn(b);
+nbr_OFDM_symbols = 10;
 
-SNR_vect = 0:0.5:20;
+
+
+
+function SER_SNR()
+SNR_vect = 5:0.5:15;
 BER =  zeros(1, length(SNR_vect));
 for a=1:length(BER)
     BER(a) = OFDM_simulation(SNR_vect(a));
 end
+figure();
 semilogy(SNR_vect, BER);
 
-Pe = ((4-1)/4)*erfc(sqrt(3*10.^(SNR_vect/10)/(2*(4^2-1))));
+Pe = erfc(sqrt(3*10.^(SNR_vect/10)/(2*(4-1))));
 hold on 
 semilogy(SNR_vect, Pe)
-
+end
 
 
 
