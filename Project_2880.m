@@ -26,9 +26,12 @@ semilogy(SNR_vect, BER);
 
 Pe = erfc(sqrt(3*10.^(SNR_vect/10)/(2*(4-1))));
 hold on 
-semilogy(SNR_vect, Pe)
+semilogy(SNR_vect, Pe);
+xlabel("SNR [dB]");
+ylabel("Symbol error rate");
+title("Symbol error rate in function of the SNR");
+legend("experimental curve", "theoretical curve");
 end
-
 
 
 
@@ -45,7 +48,7 @@ end
 %cp est un vecteur de cyclic prefix de taille Lc = 16
 function [symbole_ifft, symbole_without_cp] = OFDM_symbol(cp)
 global N;
-%création de la sequence de symboles à envoyer
+%crï¿½ation de la sequence de symboles ï¿½ envoyer
 QAM = [1+1i, 1-1i, -1+1i, -1-1i];
 random = randi([1,4], 1, N);
 s = zeros(1,N);
