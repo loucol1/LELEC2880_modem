@@ -6,16 +6,20 @@ N = 128;
 global Lc;
 Lc = 16;
 global nbr_OFDM_symbols;
-nbr_OFDM_symbols = 5;
+nbr_OFDM_symbols = 100;
 %b= [1+1i, -1-1i];
 %a = awgn(b);
 
-SNR_vect = 0:0.005:40;
+SNR_vect = 0:0.5:20;
 BER =  zeros(1, length(SNR_vect));
 for a=1:length(BER)
     BER(a) = OFDM_simulation(SNR_vect(a));
 end
 semilogy(SNR_vect, BER);
+
+Pe = ((4-1)/4)*erfc(sqrt(3*10.^(SNR_vect/10)/(2*(4^2-1))));
+hold on 
+semilogy(SNR_vect, Pe)
 
 
 
@@ -26,7 +30,7 @@ function bit_error_rate = OFDM_simulation(SNR)
 vecteur_after_chanel = channel(vecteur_ofdm_symbol, SNR);
 receive_decode = decoder(vecteur_after_chanel);
 symbol_error_rate = calcul_error(vector_data_brut, detection(receive_decode));
-bit_error_rate = symbol_error_rate*2;
+bit_error_rate = symbol_error_rate; %% pour avoir la courbe du symbol rate
 end
 
 
@@ -67,15 +71,32 @@ vector_data_brut = data_brut;
 end
 
 function vector_corrupted = channel(vector_clean, SNR)
-SNR_naturel = 10^(SNR/20);
-amplitude = sqrt(2);%l'amplitude d un symbole
-noise_variance = amplitude^2/SNR_naturel;
-noise_variance = noise_variance/2;
-vector_noise_real = normrnd(0, noise_variance, [1, length(vector_clean)]);
-vector_noise_imaginary = 1i*normrnd(0, noise_variance, [1, length(vector_clean)]);
-vector_noise = vector_noise_real + vector_noise_imaginary;
-vector_corrupted = vector_clean + vector_noise;
+vector_corrupted = add_awgn_noise(vector_clean, SNR);
+% SNR_naturel = 10^(SNR/20);
+% amplitude = sqrt(2);%l'amplitude d un symbole
+% noise_variance = amplitude^2/SNR_naturel;
+% noise_variance = noise_variance/2;
+% vector_noise_real = normrnd(0, noise_variance, [1, length(vector_clean)]);
+% vector_noise_imaginary = 1i*normrnd(0, noise_variance, [1, length(vector_clean)]);
+% vector_noise = vector_noise_real + vector_noise_imaginary;
+% vector_corrupted = vector_clean + vector_noise;
 end
+
+function y = add_awgn_noise(x, SNR)
+L = length(x);
+SNR = 10^(SNR/10);
+Esym = sum(abs(x).^2)/(L);
+N0 = Esym/SNR;
+% if(isreal(x))
+%     noiseSigma = sqrt(N0);
+%     n = noiseSigma*randn(1,L);
+% else
+    noiseSigma = sqrt(N0/2);
+    n = noiseSigma*(randn(1,L) + 1i*randn(1,L));
+%end
+y = x + n;
+end
+
 
 function y = decoder(r)
 global N;
