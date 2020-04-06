@@ -11,10 +11,39 @@ global Lc;
 Lc = 16;
 global nbr_OFDM_symbols;
 nbr_OFDM_symbols = 10;
+global Pmax;
+Pmax = 1;
+SNR = 3; %dB
+H = fft(h, 128);
+[vecteur_ofdm_symbol, vector_data_brut]  = vecteur_ofdm_symbols();
+L = length(vecteur_ofdm_symbol);
+SNR = 10^(SNR/10);
+Esym = sum(abs(vecteur_ofdm_symbol).^2)/(L);
+N0 = Esym/SNR; %variance du bruit
+H_carre = abs(H).^2;
+N0 = N0*ones(length(H_carre), 1);
+bruit_sur_canal = N0./H_carre;
+mu = water_level(bruit_sur_canal)
+
+
+function mu = water_level(bruit_sur_canal)
+global Pmax;
+length_debut = length(bruit_sur_canal)
+mu = (Pmax + sum(bruit_sur_canal))/length(bruit_sur_canal);
+[Max, Indice] = max(bruit_sur_canal);
+while(mu<Max)
+    bruit_sur_canal(Indice) = [];
+    mu = (Pmax + sum(bruit_sur_canal))/length(bruit_sur_canal);
+    [Max, Indice] = max(bruit_sur_canal);
+end
+length_fin = length(bruit_sur_canal)
+end
 
 
 
 
+
+%give the symbol error rate function of the snr
 function SER_SNR()
 SNR_vect = 5:0.5:15;
 BER =  zeros(1, length(SNR_vect));
@@ -34,17 +63,18 @@ legend("experimental curve", "theoretical curve");
 end
 
 
-
-function bit_error_rate = OFDM_simulation(SNR)
+% simulation of the sending and the receiving of ofdm vector for one
+% specific snr
+%return the symbol error rate
+function symbol_error_rate = OFDM_simulation(SNR)
 [vecteur_ofdm_symbol, vector_data_brut] = vecteur_ofdm_symbols();
 vecteur_after_chanel = channel(vecteur_ofdm_symbol, SNR);
 receive_decode = decoder(vecteur_after_chanel);
 symbol_error_rate = calcul_error(vector_data_brut, detection(receive_decode));
-bit_error_rate = symbol_error_rate; %% pour avoir la courbe du symbol rate
 end
 
 
-
+%produce an ofdm symbol and the ofdm symbol without cp corresponding
 %cp est un vecteur de cyclic prefix de taille Lc = 16
 function [symbole_ifft, symbole_without_cp] = OFDM_symbol(cp)
 global N;
@@ -63,6 +93,7 @@ inter = ifft(s(1:N));
 symbole_ifft = [cp, inter];
 end
 
+%produce a vector of nbr_OFDM_symbols
 function [vecteur_ofdm_symbol, vector_data_brut]  = vecteur_ofdm_symbols()
 global N;
 global Lc;
@@ -79,6 +110,7 @@ vector_data_brut = data_brut;
       %ofdm_without_cp(a*N+1 : (a+1)*N) = ofdm_symbol(a*(Lc+N)-N+1 : a*(N+Lc));
     end
 end
+
 
 function vector_corrupted = channel(vector_clean, SNR)
 vector_corrupted = add_awgn_noise(vector_clean, SNR);
@@ -142,7 +174,6 @@ for a= 1:length(vector_complexe)
     end
 end
 end
-
 
 function symbol_error_rate = calcul_error(send, received)
 nbr_error = sum(send ~= received); 
