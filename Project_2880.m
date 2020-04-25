@@ -10,16 +10,19 @@ N = 128;
 global Lc;
 Lc = 16;
 global nbr_OFDM_symbols;
-nbr_OFDM_symbols = 10;
+nbr_OFDM_symbols = 100;
 global Pmax;
-Pmax = 1;
-SNR = 12; %dB
+SNR = 13; %dB
 H = fft(h, 128);
 [vecteur_ofdm_symbol, vector_data_brut]  = vecteur_ofdm_symbols();
 L = length(vecteur_ofdm_symbol);
 SNR = 10^(SNR/10);
-Esym = sum(abs(vecteur_ofdm_symbol).^2)/(L);
-N0 = Esym/SNR; %variance du bruit
+
+Esym = sum(abs(vecteur_ofdm_symbol).^2)/(L); %
+Pmax = (sum(abs(vecteur_ofdm_symbol).^2))/nbr_OFDM_symbols;
+N0 = (Esym)/SNR; %variance du bruit
+
+
 H_carre = abs(H).^2;
 N0 = N0*ones(length(H_carre), 1);
 bruit_sur_canal = N0./H_carre;
@@ -27,13 +30,11 @@ mu = water_level(bruit_sur_canal); %bruit_sur_canal = sigma_n_carre/|H_n|^2
 sigma_x_carre = mu*ones(length(bruit_sur_canal),1) - bruit_sur_canal;
 signe_sigma = sigma_x_carre > 0;
 sigma_x_carre = sigma_x_carre .* signe_sigma; %met les valeurs negatives a zero
-SNR = sigma_x_carre ./ N0;
+SNR_n = sigma_x_carre ./ N0;
 Perror_target = 10^-5;
 gamma = (2/3)*(erfcinv(Perror_target/2))^2;
-nbr_bits = (1/2)*log2(1+SNR/gamma);
-
-
-
+nbr_bits = (1/2)*log2(1+SNR_n/gamma);
+SER_SNR()
 
 function mu = water_level(bruit_sur_canal)
 global Pmax;
