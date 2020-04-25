@@ -30,7 +30,7 @@ mu = water_level(bruit_sur_canal); %bruit_sur_canal = sigma_n_carre/|H_n|^2
 sigma_x_carre = mu*ones(length(bruit_sur_canal),1) - bruit_sur_canal;
 signe_sigma = sigma_x_carre > 0;
 sigma_x_carre = sigma_x_carre .* signe_sigma; %met les valeurs negatives a zero
-SNR_n = sigma_x_carre ./ N0;
+SNR_n = sigma_x_carre ./ N0; %SNR par channel
 Perror_target = 10^-5;
 gamma = (2/3)*(erfcinv(Perror_target/2))^2;
 nbr_bits = (1/2)*log2(1+SNR_n/gamma);
