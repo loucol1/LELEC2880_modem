@@ -20,7 +20,7 @@ SNR = 10^(SNR/10);
 
 Esym = sum(abs(vecteur_ofdm_symbol).^2)/(L); %
 Pmax = (sum(abs(vecteur_ofdm_symbol).^2))/nbr_OFDM_symbols;
-N0 = (Esym)/(SNR*2); %variance du bruit, /2 partie imaginaire et réelle
+N0 = (Esym)/(SNR*2); %variance du bruit, /2 partie imaginaire et rï¿½elle
 
 
 H_carre = abs(H).^2;
@@ -39,6 +39,13 @@ bar(mu*ones(1, length(sigma_x_carre)));
 hold on
 bar(mu*ones(1, length(sigma_x_carre))-sigma_x_carre); %bruit
 bit_rate = sum(nbr_bits); %nombre total de bit sur toutes les porteuses
+
+%distribution uniforme
+P_uniform = ones(1,128)*Pmax/128;
+SNR_uniform = P_uniform./bruit_sur_canal.';
+nbr_bit_uniform = 0.5*log2(1+SNR_uniform/gamma);
+bit_rate_uniform = sum(nbr_bit_uniform);
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%Part3
@@ -67,9 +74,9 @@ Y = fft(y);
 
 
 %%%
-h2=zeros(1,128);
+h2=zeros(1,128); % canal avec 8 taps et des 0 derriere
 h2(1:length(h))=h;
-test_send = training_seq(Lc+1:N+Lc);
+test_send = training_seq(Lc+1:N+Lc); %1 symbole de la training sequence sans cyclic prefix
 H = fft(h2,128);
 Test_send = fft(test_send, 128);
 Y=H.*Test_send;
@@ -108,7 +115,7 @@ for a=(0:Nbr_trial-1)
 end
 figure()
 plot((0:Nbr_trial-1), MSE_vec)
-title('MSE function of the SNR')
+title('MSE function of SNR')
 
  
 
@@ -265,10 +272,3 @@ function symbol_error_rate = calcul_error(send, received)
 nbr_error = sum(send ~= received); 
 symbol_error_rate = nbr_error/length(send);
 end
-
-
-
-
-
-
-
