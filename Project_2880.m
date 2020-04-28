@@ -39,6 +39,67 @@ bar(mu*ones(1, length(sigma_x_carre)));
 hold on
 bar(mu*ones(1, length(sigma_x_carre))-sigma_x_carre); %bruit
 bit_rate = sum(nbr_bits) %nombre total de bit sur toutes les porteuses
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%Part3
+SNR = 2;
+
+%creation training sequence
+training_seq = zeros(1,2*N+2*Lc);
+first = -1*ones(1,N);
+exposant = (0:N-1);
+preambule = first.^exposant;
+Preambule = ifft(preambule, 128);
+training_seq(1:Lc) = Preambule(N-Lc+1:N);
+training_seq(Lc+1:N+Lc) = Preambule;
+training_seq(N+Lc+1:N+2*Lc) = Preambule(N-Lc+1:N);
+training_seq(N+2*Lc+1:2*N+2*Lc) = Preambule;
+%%%
+
+%%%
+y = conv(training_seq,h);
+y = add_awgn_noise(y, SNR);
+Y = fft(y);
+% estimate_H = Y(Lc+1:N+Lc)./preambule;
+% estimate_h = ifft(estimate_H,length(estimate_H));
+% figure()
+% plot((1:length(estimate_h)), abs(estimate_h))
+
+
+%%%
+h2=zeros(1,128);
+h2(1:length(h))=h;
+test_send = training_seq(Lc+1:N+Lc);
+H = fft(h2,128);
+Test_send = fft(test_send, 128);
+Y=H.*Test_send;
+estimate_H = Y./preambule;
+estimate_h = ifft(estimate_H,128);
+figure()
+plot((1:length(estimate_h)), abs(estimate_h))
+title('yhouyhou')
+forme = abs(h'-estimate_h(1:length(h))).^2;
+MSE = sum(abs(h'-estimate_h(1:length(h))).^2)/length(h);
+
+Nbr_trial = 21;
+MSE_vec = zeros(1,Nbr_trial);
+
+
+for a=(0:Nbr_trial-1)
+    SNR = a;
+    h2=zeros(1,128);
+    h2(1:length(h))=h;
+    test_send = add_awgn_noise(training_seq(Lc+1:N+Lc),SNR);
+    H = fft(h2,128);
+    Test_send = fft(test_send, 128);
+    Y=H.*Test_send;
+    estimate_H = Y./preambule;
+    estimate_h = ifft(estimate_H,128);
+    MSE_vec(a+1) = sum(abs(h'-estimate_h(1:length(h))).^2)/length(h);    
+end
+figure()
+plot((0:Nbr_trial-1), MSE_vec)
+title('MSE function of the SNR')
 
  
 
@@ -195,6 +256,7 @@ function symbol_error_rate = calcul_error(send, received)
 nbr_error = sum(send ~= received); 
 symbol_error_rate = nbr_error/length(send);
 end
+
 
 
 
