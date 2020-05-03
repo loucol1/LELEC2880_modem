@@ -108,22 +108,160 @@ for a=(0:Nbr_trial-1)
         estimate_h = ifft(estimate_H,128);
         estimate_H_8=fft(estimate_h(1:8),128);%On sait que h est de longeur 8 donc on ne prend
         %que les 8 premiers taps
-        MSE_moyenne = MSE_moyenne + sum(abs(H-estimate_H_8).^2)/length(H);    
+        MSE_moyenne = MSE_moyenne + sum(abs(H-estimate_H_8).^2)/length(H);
     end
-
-    MSE_vec(a+1) = MSE_moyenne/(nbr_rep+1);    
+    
+    MSE_vec(a+1) = MSE_moyenne/(nbr_rep+1);
 end
 figure()
 plot((0:Nbr_trial-1), MSE_vec)
 title('MSE function of SNR')
 
 %%%% Part 4 - Viterbi decoding
+%%
+
+
+SNR = 13;
+u = [0,1,1,0,0,1,1,0,1,0,1];
+[x, symbols] = viterbi_encode(u);
+u_receive = viterbi_decode(symbols);
+
+% %calcul de la TF inverse
+% inter = ifft(symbol);
+% 
+% %ajoute le cyclic prefix
+% cp = zeros(1, Lc);
+% symbole_ofdm = [cp, inter];
+% 
+% %modulation avec le channel + bruit
+% y = conv(symbol_ofdm,h);
+% y = add_awgn_noise(y, SNR);
+% 
+% %retire le cyclic prefix
+% y = y(Lc+1:end);
+% 
+% %receiver
+% u_receive = viterbi_decode(y)
+
+
+function [x, symbols] = viterbi_encode(u)
+x = zeros(1, 2*length(u));
+symbols = zeros(1,length(u));
+u_k2 = 0;
+u_k1 = 0;
+counter = 1;
+while(counter<=length(u))
+    u_k = u(counter);
+    x(1, [2*counter-1, 2*counter]) = [bitxor(u_k, u_k1), bitxor(bitxor(u_k, u_k1), u_k2)];
+    x1_x2 = [bitxor(u_k, u_k1), bitxor(bitxor(u_k, u_k1), u_k2)];
+    if(x1_x2(1) == 0)
+        x1_x2(1) = -1;
+    end
+    if(x1_x2(2) == 0)
+        x1_x2(2) = -1;
+    end
+    symbols(counter) = x1_x2(1) + 1j*x1_x2(2);
+    u_k2 = u_k1;
+    u_k1 = u(counter);
+    counter = counter + 1;
+end
+end
+
+function u = viterbi_decode(y)
+matrix = 9999*ones(4, length(y)+1, 2);
+matrix(1,1,:) = [0, -1]; %[error, chemin(en decimal)]
+for column = 1:length(y)
+    for ligne = 1:4
+        if(matrix(ligne, column, 1)~= -1)
+            if ligne == 1
+                matrix(1,column+1,:) = [matrix(1,column,1)+abs(y(column)-(-1-1j)), 0];
+                matrix(2,column+1,:) = [matrix(1,column,1)+abs(y(column)-(1+1j)), 3];
+            end
+            if ligne == 2
+                error = matrix(2,column,1)+abs(y(column)-(1+1j));
+                if(error < matrix(3,column+1,1))
+                    matrix(3,column+1,:) = [error, 3];
+                end
+                error = matrix(2,column,1)+abs(y(column)-(-1-1j));
+                if(error < matrix(4,column+1,1))
+                    matrix(4,column+1,:) = [error, 0];
+                end
+            end
+            if ligne == 3
+                error = matrix(3,column,1)+abs(y(column)-(-1+1j));
+                if(error < matrix(1,column+1,1))
+                    matrix(1,column+1,:) = [error,1];
+                end
+                error = matrix(3,column,1)+abs(y(column)-(1-1j));
+                if(error < matrix(2,column+1,1))
+                    matrix(2,column+1,:) = [error, 2];
+                end
+            end
+            
+            if ligne == 4
+                error = matrix(4,column,1)+abs(y(column)-(1-1j));
+                if(error < matrix(3,column+1,1))
+                    matrix(3,column+1,:) = [error,2];
+                end
+                error = matrix(4,column,1)+abs(y(column)-(-1+1j));
+                if(error < matrix(4,column+1,1))
+                    matrix(4,column+1,:) = [error, 1];
+                end
+            end
+        end
+    end
+end
+x = zeros(1,length(y)); %chemin avec somme des erreur minimal
+[Min, Indice] = min(matrix(:,end,1));
+for column = length(y):1
+    if Indice == 1
+        if matrix(1,column,2)==0
+            Indice = 1;
+            x(1,column) = 0;
+        else
+            Indice = 3;
+            x(1,column) = 1;
+        end
+    else if Indice == 2
+            if matrix(2,column,2)==3
+                Indice = 1;
+                x(1,column) = 3;
+            else
+                Indice = 3;
+                x(1,column) = 2;
+            end
+        else if Indice == 3
+                if matrix(3,column,2) == 3
+                    Indice = 2;
+                    x(1,column) = 3;
+                else
+                    Indice = 4;
+                    x(1,column) = 2;
+                end
+            else
+                if matrix(4,column,2) == 0
+                    Indice = 2;
+                    x(1,column) = 0;
+                else
+                    Indice = 4;
+                    x(1,column) = 1;
+                end
+            end
+        end
+    end
+end
+
+%retrouver u à partir de x
+u = zeros(1,length(x));
+u_k1 = 0;
+for k = 1:length(x)
+    u(k) = bitxor(u_k1, floor(x(k)/2));
+    u_k1 = u(k);
+end
+end
 
 
 
-
-
- 
 
 function mu = water_level(bruit_sur_canal)
 global Pmax;
@@ -153,7 +291,7 @@ figure();
 semilogy(SNR_vect, BER);
 
 Pe = erfc(sqrt(3*10.^(SNR_vect/10)/(2*(4-1))));
-hold on 
+hold on
 semilogy(SNR_vect, Pe);
 xlabel("SNR [dB]");
 ylabel("Symbol error rate");
@@ -182,7 +320,7 @@ QAM = [1+1i, 1-1i, -1+1i, -1-1i];
 random = randi([1,4], 1, N);
 s = zeros(1,N);
 for a = 1:N
-    s(a) = QAM(random(a)); 
+    s(a) = QAM(random(a));
 end
 symbole_without_cp = s;
 %calcul de la TF inverse
@@ -203,11 +341,11 @@ vecteur_ofdm_symbol = zeros(1,nbr_OFDM_symbols*(N+Lc));
 [vecteur_ofdm_symbol(1:Lc+N),data_brut] = OFDM_symbol(zeros(1,Lc));
 vector_data_brut = data_brut;
 %ofdm_without_cp(1 : N) = ofdm_symbol(Lc+1 : (N+Lc));
-    for a = 1:nbr_OFDM_symbols-1
-      [vecteur_ofdm_symbol(a*(Lc+N)+1 : (a+1)*(Lc+N)),data_brut]  = OFDM_symbol(vecteur_ofdm_symbol(a*(Lc+N)-Lc+1 : a*(Lc+N)));
-      vector_data_brut = [vector_data_brut, data_brut];
-      %ofdm_without_cp(a*N+1 : (a+1)*N) = ofdm_symbol(a*(Lc+N)-N+1 : a*(N+Lc));
-    end
+for a = 1:nbr_OFDM_symbols-1
+    [vecteur_ofdm_symbol(a*(Lc+N)+1 : (a+1)*(Lc+N)),data_brut]  = OFDM_symbol(vecteur_ofdm_symbol(a*(Lc+N)-Lc+1 : a*(Lc+N)));
+    vector_data_brut = [vector_data_brut, data_brut];
+    %ofdm_without_cp(a*N+1 : (a+1)*N) = ofdm_symbol(a*(Lc+N)-N+1 : a*(N+Lc));
+end
 end
 
 
@@ -232,8 +370,8 @@ N0 = Esym/SNR;
 %     noiseSigma = sqrt(N0);
 %     n = noiseSigma*randn(1,L);
 % else
-    noiseSigma = sqrt(N0/2);
-    n = noiseSigma*(randn(1,L) + 1i*randn(1,L));
+noiseSigma = sqrt(N0/2);
+n = noiseSigma*(randn(1,L) + 1i*randn(1,L));
 %end
 y = x + n;
 end
@@ -275,6 +413,6 @@ end
 end
 
 function symbol_error_rate = calcul_error(send, received)
-nbr_error = sum(send ~= received); 
+nbr_error = sum(send ~= received);
 symbol_error_rate = nbr_error/length(send);
 end
