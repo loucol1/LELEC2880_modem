@@ -12,7 +12,7 @@ Lc = 16;
 global nbr_OFDM_symbols;
 nbr_OFDM_symbols = 100;
 global Pmax;
-SNR = 20; %dB
+SNR = 10; %dB
 H = fft(h, 128);
 [vecteur_ofdm_symbol, vector_data_brut]  = vecteur_ofdm_symbols();
 L = length(vecteur_ofdm_symbol);
@@ -32,7 +32,7 @@ mu = water_level(bruit_sur_canal); %bruit_sur_canal = sigma_n_carre/|H_n|^2
 sigma_x_carre = mu*ones(length(bruit_sur_canal),1) - bruit_sur_canal; %Puissance de signal par channel
 signe_sigma = sigma_x_carre > 0;
 sigma_x_carre = sigma_x_carre .* signe_sigma; %met les valeurs negatives a zero
-SNR_n = sigma_x_carre ./ N0; %SNR par channel
+SNR_n = sigma_x_carre ./ bruit_sur_canal; %SNR par channel
 nbr_bits = (1/2)*log2(1+SNR_n/gamma);
 figure
 bar(mu*ones(1, length(sigma_x_carre)));
@@ -116,6 +116,12 @@ end
 figure()
 plot((0:Nbr_trial-1), MSE_vec)
 title('MSE function of SNR')
+
+%%%% Part 4 - Viterbi decoding
+
+
+
+
 
  
 
