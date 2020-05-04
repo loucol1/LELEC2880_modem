@@ -121,27 +121,28 @@ title('MSE function of SNR')
 %%
 
 
-SNR = 13;
-u = [0,1,1,0,0,1,1,0,1,0,1];
+SNR = 20;
+u = [1,1,0,1,1,0,1,1,1,0];
 [x, symbols] = viterbi_encode(u);
-u_receive = viterbi_decode(symbols);
 
-% %calcul de la TF inverse
-% inter = ifft(symbol);
-% 
-% %ajoute le cyclic prefix
-% cp = zeros(1, Lc);
-% symbole_ofdm = [cp, inter];
-% 
-% %modulation avec le channel + bruit
-% y = conv(symbol_ofdm,h);
-% y = add_awgn_noise(y, SNR);
-% 
-% %retire le cyclic prefix
-% y = y(Lc+1:end);
-% 
-% %receiver
-% u_receive = viterbi_decode(y)
+
+%calcul de la TF inverse
+inter = ifft(symbols);
+
+%ajoute le cyclic prefix
+cp = zeros(1, Lc);
+symbole_ofdm = [cp, inter];
+
+%modulation avec le channel + bruit
+
+y = add_awgn_noise(y, SNR);
+
+%retire le cyclic prefix
+y = y(Lc+1:end-7);
+
+%receiver
+y = fft(y)
+u_receive = viterbi_decode(y)
 
 
 function [x, symbols] = viterbi_encode(u)
@@ -172,7 +173,7 @@ matrix = 9999*ones(4, length(y)+1, 2);
 matrix(1,1,:) = [0, -1]; %[error, chemin(en decimal)]
 for column = 1:length(y)
     for ligne = 1:4
-        if(matrix(ligne, column, 1)~= -1)
+        if(matrix(ligne, column, 1)~= 9999)
             if ligne == 1
                 matrix(1,column+1,:) = [matrix(1,column,1)+abs(y(column)-(-1-1j)), 0];
                 matrix(2,column+1,:) = [matrix(1,column,1)+abs(y(column)-(1+1j)), 3];
@@ -211,40 +212,41 @@ for column = 1:length(y)
         end
     end
 end
+
 x = zeros(1,length(y)); %chemin avec somme des erreur minimal
 [Min, Indice] = min(matrix(:,end,1));
-for column = length(y):1
+for column = linspace(length(y)+1,2,length(y))
     if Indice == 1
         if matrix(1,column,2)==0
             Indice = 1;
-            x(1,column) = 0;
+            x(1,column-1) = 0;
         else
             Indice = 3;
-            x(1,column) = 1;
+            x(1,column-1) = 1;
         end
     else if Indice == 2
             if matrix(2,column,2)==3
                 Indice = 1;
-                x(1,column) = 3;
+                x(1,column-1) = 3;
             else
                 Indice = 3;
-                x(1,column) = 2;
+                x(1,column-1) = 2;
             end
         else if Indice == 3
                 if matrix(3,column,2) == 3
                     Indice = 2;
-                    x(1,column) = 3;
+                    x(1,column-1) = 3;
                 else
                     Indice = 4;
-                    x(1,column) = 2;
+                    x(1,column-1) = 2;
                 end
             else
                 if matrix(4,column,2) == 0
                     Indice = 2;
-                    x(1,column) = 0;
+                    x(1,column-1) = 0;
                 else
                     Indice = 4;
-                    x(1,column) = 1;
+                    x(1,column-1) = 1;
                 end
             end
         end
