@@ -217,7 +217,7 @@ for column = linspace(length(y)+1,2,length(y))
     end
 end
 
-%retrouver u à partir de x
+%retrouver u ï¿½ partir de x
 u = zeros(1,length(x));
 u_k1 = 0;
 for k = 1:length(x)
