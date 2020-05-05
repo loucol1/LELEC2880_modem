@@ -19,10 +19,12 @@ global Pmax;
 %%%% Part 4 - Viterbi decoding
 nbr_diff_vect = zeros(1,16);
 nbr_diff_vect2 = zeros(1,16);
+nbr_diff_vect3 = zeros(1,16);
 Nbr_trial_max = 1000;
 for SNR = 0:15
     nbr_diff = 0;
     nbr_diff2 = 0;
+    nbr_diff3 = 0;
     for nbr_trial = 1:Nbr_trial_max
         u = random_vector(128);
         
@@ -56,9 +58,13 @@ for SNR = 0:15
         %Y_second = Y_second.';
         Y_without_viterbi = fft(y_without_viterbi(Lc+1:end-7), 128);
         
-        
+        %Viterbi
         u_receive = viterbi_decode(Y_first, H_1);
         nbr_diff = nbr_diff+sum(abs(u_receive-u));
+        
+        %Viterbi sans channel
+        u_receive3 = viterbi_decode(Y_first./H_1, ones(1,128));
+        nbr_diff3 = nbr_diff3+sum(abs(u_receive3-u));
         
         %sans Viterbi
         Y_equalize = Y_without_viterbi./H_1;
@@ -68,13 +74,16 @@ for SNR = 0:15
     end
     nbr_diff_vect(SNR+1) = nbr_diff/(128*Nbr_trial_max);
     nbr_diff_vect2(SNR+1) = nbr_diff2/(128*2*Nbr_trial_max);
+    nbr_diff_vect3(SNR+1) = nbr_diff3/(128*Nbr_trial_max);
 end
 figure
 semilogy((0:15),nbr_diff_vect);
 hold on
 semilogy((0:15),nbr_diff_vect2);
-legend('Viterbi', 'QAM 4');
-xlabel('SNR (dB)');
+hold on
+semilogy((0:15),nbr_diff_vect3);
+legend('Viterbi', 'QAM 4','Viterbi without channel');
+xlabel('E_s/N_0 (dB)');
 ylabel('BER');
 title('BER function of SNR with and without Viterbi coding');
 
