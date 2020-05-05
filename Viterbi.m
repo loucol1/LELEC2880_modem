@@ -18,9 +18,11 @@ global Pmax;
 
 %%%% Part 4 - Viterbi decoding
 nbr_diff_vect = zeros(1,16);
+nbr_diff_vect2 = zeros(1,16);
 Nbr_trial_max = 1000;
 for SNR = 0:15
     nbr_diff = 0;
+    nbr_diff2 = 0;
     for nbr_trial = 1:Nbr_trial_max
         u = random_vector(128);
         
@@ -55,11 +57,25 @@ for SNR = 0:15
         
         u_receive = viterbi_decode(Y_first, H_1);
         nbr_diff = nbr_diff+sum(abs(u_receive-u));
+        
+        %sans Viterbi
+        Y_equalize = Y_first./H_1;
+        Y_decode = detection(Y_equalize);
+        x_receive = symbol_to_bit(Y_decode);
+        nbr_diff2 = nbr_diff2+sum(abs(x_receive-x));
     end
     nbr_diff_vect(SNR+1) = nbr_diff/(128*Nbr_trial_max);
+    nbr_diff_vect2(SNR+1) = nbr_diff2/(128*2*Nbr_trial_max);
 end
-
+figure
 semilogy((0:15),nbr_diff_vect);
+hold on
+semilogy((0:15),nbr_diff_vect2);
+legend('Viterbi', 'QAM 4');
+xlabel('SNR (dB)');
+ylabel('BER');
+title('BER function of SNR with and without Viterbi coding');
+
 
 
 
@@ -229,3 +245,40 @@ for b= 1:Dim
 end
 end
 
+function adjust_vector = detection(vector_complexe)
+adjust_vector = zeros(1, length(vector_complexe));
+for a= 1:length(vector_complexe)
+    value = vector_complexe(a);
+    if(real(value)>0)
+        if(imag(value)>0)
+            adjust_vector(a) = 1+1i;
+        else
+            adjust_vector(a) = 1-1i;
+        end
+    else
+        if(imag(value)>0)
+            adjust_vector(a) = -1+1i;
+        else
+            adjust_vector(a) = -1-1i;
+        end
+    end
+end
+end
+
+function vector_bit = symbol_to_bit(vector_symbol)
+    vector_bit = zeros(1,2*length(vector_symbol));
+    for a = 1:length(vector_symbol)
+        if vector_symbol(a)==1+1j
+            vector_bit(2*a-1:2*a) = [1, 1];
+        end
+        if vector_symbol(a)==1-1j
+            vector_bit(2*a-1:2*a) = [1, 0];
+        end
+        if vector_symbol(a)==-1+1j
+            vector_bit(2*a-1:2*a) = [0, 1];
+        end
+        if vector_symbol(a)==-1-1j
+            vector_bit(2*a-1:2*a) = [0, 0];
+        end
+    end
+end
