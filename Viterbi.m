@@ -39,8 +39,9 @@ for SNR = 0:15
         %modulation avec le channel + bruit
         y = conv(symbole_ofdm,h);
         
-        
+        y_without_viterbi = add_awgn_noise(y, SNR+10*log10(2));
         y = add_awgn_noise(y, SNR);
+        
         
         %retire le cyclic prefix
         %Y = fft(y(Lc+1:end),128);
@@ -53,13 +54,14 @@ for SNR = 0:15
         %Y_first = Y_first.';
         Y_second = H_1.*fft(inter, 128);
         %Y_second = Y_second.';
+        Y_without_viterbi = fft(y_without_viterbi(Lc+1:end-7), 128);
         
         
         u_receive = viterbi_decode(Y_first, H_1);
         nbr_diff = nbr_diff+sum(abs(u_receive-u));
         
         %sans Viterbi
-        Y_equalize = Y_first./H_1;
+        Y_equalize = Y_without_viterbi./H_1;
         Y_decode = detection(Y_equalize);
         x_receive = symbol_to_bit(Y_decode);
         nbr_diff2 = nbr_diff2+sum(abs(x_receive-x));
