@@ -20,7 +20,7 @@ global Pmax;
 nbr_diff_vect = zeros(1,16);
 nbr_diff_vect2 = zeros(1,16);
 nbr_diff_vect3 = zeros(1,16);
-Nbr_trial_max = 1000;
+Nbr_trial_max = 100;
 for SNR = 0:15
     nbr_diff = 0;
     nbr_diff2 = 0;
@@ -37,12 +37,14 @@ for SNR = 0:15
         %ajoute le cyclic prefix
         cp = zeros(1, Lc);
         symbole_ofdm = [cp, inter];
+        bruit_without_channel = add_awgn_noise(inter, SNR+10*log10(2))-inter;
+        bruit_with_channel = add_awgn_noise(inter, SNR)-inter;
         
         %modulation avec le channel + bruit
         y = conv(symbole_ofdm,h);
         
-        y_without_viterbi = add_awgn_noise(y, SNR+10*log10(2));
-        y = add_awgn_noise(y, SNR);
+        y_without_viterbi = y(Lc+1:end-7)+bruit_without_channel;
+        y = y(Lc+1:end-7) + bruit_with_channel;
         
         
         %retire le cyclic prefix
