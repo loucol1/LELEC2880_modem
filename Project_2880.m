@@ -3,7 +3,7 @@ close all;
 clear all;
 load('CIR.mat', 'h');
 IRchannel = h;
-
+test_H = fft(h, 128);
 
 global N;
 N = 128;
@@ -64,9 +64,13 @@ training_seq(N+2*Lc+1:2*N+2*Lc) = Preambule;
 %%%
 
 %%%
-y = conv(training_seq,h);
-y = add_awgn_noise(y, SNR);
-Y = fft(y);
+test_send = training_seq(1:N+Lc); %1 symbole de la training sequence avec cyclic prefix
+y = conv(test_send,h);
+%y = add_awgn_noise(y, SNR);
+Y = fft(y(Lc+1:end-7),128);
+H_e_test = Y./preambule;
+estimate_h_test = ifft(H_e_test, 128);
+estimate_h_test = estimate_h_test.';
 % estimate_H = Y(Lc+1:N+Lc)./preambule;
 % estimate_h = ifft(estimate_H,length(estimate_H));
 % figure()
@@ -83,9 +87,9 @@ Y=H.*Test_send;
 estimate_H = Y./preambule;
 estimate_h = ifft(estimate_H,128);
 estimate_h_prime = estimate_h.';
-figure()
-plot((1:length(estimate_h)), abs(estimate_h))
-title('Channel estimation')
+% figure()
+% plot((1:length(estimate_h)), abs(estimate_h))
+% title('Channel estimation')
 forme = abs(h.'-estimate_h(1:length(h))).^2;
 MSE_h = sum(abs(h.'-estimate_h(1:length(h))).^2)/length(h);
 
@@ -113,36 +117,46 @@ for a=(0:Nbr_trial-1)
     
     MSE_vec(a+1) = MSE_moyenne/(nbr_rep+1);
 end
-figure()
-plot((0:Nbr_trial-1), MSE_vec)
-title('MSE function of SNR')
+% figure()
+% plot((0:Nbr_trial-1), MSE_vec)
+% title('MSE function of SNR')
 
 %%%% Part 4 - Viterbi decoding
 %%
 
 
 SNR = 20;
-u = [1,1,0,1,1,0,1,1,1,0];
+u = zeros(1,128);
 [x, symbols] = viterbi_encode(u);
 
 
 %calcul de la TF inverse
-inter = ifft(symbols);
+inter = ifft(symbols, 128);
 
 %ajoute le cyclic prefix
 cp = zeros(1, Lc);
 symbole_ofdm = [cp, inter];
 
 %modulation avec le channel + bruit
+y = conv(symbole_ofdm,h);
 
-y = add_awgn_noise(y, SNR);
+%y = add_awgn_noise(y, SNR);
 
 %retire le cyclic prefix
-y = y(Lc+1:end-7);
-
+%Y = fft(y(Lc+1:end),128);
+%y = y(Lc+1:end-7);
+H_1=fft(h,128);
+H_1 = H_1.';
 %receiver
-y = fft(y)
-u_receive = viterbi_decode(y)
+
+Y_first = fft(y(Lc+1:end-7), 128);
+% Y_first = Y_first.';
+Y_second = H_1.*fft(inter, 128);
+% Y_second = Y_second.';
+
+
+u_receive = viterbi_decode(Y_first, H_1)
+somme_u_receice = sum(u_receive)
 
 
 function [x, symbols] = viterbi_encode(u)
@@ -168,43 +182,59 @@ while(counter<=length(u))
 end
 end
 
-function u = viterbi_decode(y)
-matrix = 9999*ones(4, length(y)+1, 2);
+function u = viterbi_decode(y, h)
+matrix = 99999*ones(4, length(y)+1, 2);
 matrix(1,1,:) = [0, -1]; %[error, chemin(en decimal)]
 for column = 1:length(y)
     for ligne = 1:4
-        if(matrix(ligne, column, 1)~= 9999)
+        if(matrix(ligne, column, 1)~= 99999)
             if ligne == 1
-                matrix(1,column+1,:) = [matrix(1,column,1)+abs(y(column)-(-1-1j)), 0];
-                matrix(2,column+1,:) = [matrix(1,column,1)+abs(y(column)-(1+1j)), 3];
+                err = abs(y(column)-(-1-1j))^2;
+                %err = err*division(h(column));
+                matrix(1,column+1,:) = [matrix(1,column,1)+err, 0];
+                err = abs(y(column)-(1+1j))^2;
+                %err = err*division(h(column)); 
+                matrix(2,column+1,:) = [matrix(1,column,1)+err, 3];
             end
             if ligne == 2
-                error = matrix(2,column,1)+abs(y(column)-(1+1j));
+                err = abs(y(column)-(1+1j))^2;
+                %err = err*division(h(column)); 
+                error = matrix(2,column,1)+err;
                 if(error < matrix(3,column+1,1))
                     matrix(3,column+1,:) = [error, 3];
                 end
-                error = matrix(2,column,1)+abs(y(column)-(-1-1j));
+                err = abs(y(column)-(-1-1j))^2;
+                %err = err*division(h(column)); 
+                error = matrix(2,column,1)+err;
                 if(error < matrix(4,column+1,1))
                     matrix(4,column+1,:) = [error, 0];
                 end
             end
             if ligne == 3
-                error = matrix(3,column,1)+abs(y(column)-(-1+1j));
+                err = abs(y(column)-(-1+1j))^2;
+                %err = err*division(h(column)); 
+                error = matrix(3,column,1)+err;
                 if(error < matrix(1,column+1,1))
                     matrix(1,column+1,:) = [error,1];
                 end
-                error = matrix(3,column,1)+abs(y(column)-(1-1j));
+                err = abs(y(column)-(1-1j))^2;
+                %err = err*division(h(column));
+                error = matrix(3,column,1)+err;
                 if(error < matrix(2,column+1,1))
                     matrix(2,column+1,:) = [error, 2];
                 end
             end
             
             if ligne == 4
-                error = matrix(4,column,1)+abs(y(column)-(1-1j));
+                err = abs(y(column)-(1-1j))^2;
+                %err = err*division(h(column));
+                error = matrix(4,column,1)+err;
                 if(error < matrix(3,column+1,1))
                     matrix(3,column+1,:) = [error,2];
                 end
-                error = matrix(4,column,1)+abs(y(column)-(-1+1j));
+                err = abs(y(column)-(-1+1j))^2;
+                %err = err*division(h(column));
+                error = matrix(4,column,1)+err;
                 if(error < matrix(4,column+1,1))
                     matrix(4,column+1,:) = [error, 1];
                 end
@@ -260,6 +290,14 @@ for k = 1:length(x)
     u(k) = bitxor(u_k1, floor(x(k)/2));
     u_k1 = u(k);
 end
+end
+
+function un_sur_h = division(h)
+renv = abs(h-1);
+if renv<0.01
+    renv = 0.01;
+end
+un_sur_h = 1/renv;
 end
 
 
