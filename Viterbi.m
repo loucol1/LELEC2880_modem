@@ -54,11 +54,11 @@ for SNR = 0:15
         H_1 = H_1.';
         %receiver
         
-        Y_first = fft(y(Lc+1:end-7), 128);
+        Y_first = fft(y, 128);
         %Y_first = Y_first.';
         Y_second = H_1.*fft(inter, 128);
         %Y_second = Y_second.';
-        Y_without_viterbi = fft(y_without_viterbi(Lc+1:end-7), 128);
+        Y_without_viterbi = fft(y_without_viterbi, 128);
         
         %Viterbi
         u_receive = viterbi_decode(Y_first, H_1);
