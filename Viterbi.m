@@ -2,6 +2,8 @@
 close all;
 clear all;
 load('CIR.mat', 'h');
+load('save_estimate_H');
+
 IRchannel = h;
 test_H = fft(h, 128);
 
@@ -20,11 +22,13 @@ global Pmax;
 nbr_diff_vect = zeros(1,16);
 nbr_diff_vect2 = zeros(1,16);
 nbr_diff_vect3 = zeros(1,16);
+nbr_diff_vect4 = zeros(1,16);
 Nbr_trial_max = 100;
 for SNR = 0:15
     nbr_diff = 0;
     nbr_diff2 = 0;
     nbr_diff3 = 0;
+    nbr_diff4 = 0;
     for nbr_trial = 1:Nbr_trial_max
         u = random_vector(128);
         
@@ -68,6 +72,10 @@ for SNR = 0:15
         u_receive3 = viterbi_decode(Y_first./H_1, ones(1,128));
         nbr_diff3 = nbr_diff3+sum(abs(u_receive3-u));
         
+        %Viterbi avec notre estimate du channel
+        u_receive4 = viterbi_decode(Y_first, save_estimate_H(SNR+1,:));
+        nbr_diff4 = nbr_diff4+sum(abs(u_receive4-u));
+        
         %sans Viterbi
         Y_equalize = Y_without_viterbi./H_1;
         Y_decode = detection(Y_equalize);
@@ -77,6 +85,7 @@ for SNR = 0:15
     nbr_diff_vect(SNR+1) = nbr_diff/(128*Nbr_trial_max);
     nbr_diff_vect2(SNR+1) = nbr_diff2/(128*2*Nbr_trial_max);
     nbr_diff_vect3(SNR+1) = nbr_diff3/(128*Nbr_trial_max);
+    nbr_diff_vect4(SNR+1) = nbr_diff4/(128*Nbr_trial_max);
 end
 figure
 semilogy((0:15),nbr_diff_vect);
@@ -84,7 +93,9 @@ hold on
 semilogy((0:15),nbr_diff_vect2);
 hold on
 semilogy((0:15),nbr_diff_vect3);
-legend('Viterbi', 'QAM 4','Viterbi without channel');
+hold on
+semilogy((0:15), nbr_diff_vect4);
+legend('Viterbi', 'QAM 4','Viterbi without channel', 'Viterbi with estimated channel');
 xlabel('E_s/N_0 (dB)');
 ylabel('BER');
 title('BER function of SNR with and without Viterbi coding');

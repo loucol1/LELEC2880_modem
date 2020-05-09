@@ -66,6 +66,7 @@ MSE_h = sum(abs(h.'-estimate_h(1:length(h))).^2)/length(h) + sum(abs(h.'-estimat
 MSE_h = MSE_h/2;
 
 Nbr_trial = 21;
+save_estimate_H = zeros(Nbr_trial, 128);
 MSE_vec = zeros(1,Nbr_trial);
 
 
@@ -94,15 +95,15 @@ for a=(0:Nbr_trial-1)
     end
     MSE_moyenne = MSE_moyenne/2;
     MSE_vec(a+1) = MSE_moyenne/(nbr_rep+1);
+    
+    %rempli la matrice save
+    save_estimate_H(a+1, :) = (estimate_H_8+estimate_H_8_second)/2;
 end
+save('save_estimate_H');
+
 figure()
 plot((0:Nbr_trial-1), MSE_vec)
 title('MSE function of SNR')
-
-
-
-
-
 
 function y = add_awgn_noise(x, SNR)
 L = length(x);
