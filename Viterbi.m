@@ -87,6 +87,8 @@ for SNR = 0:15
     nbr_diff_vect3(SNR+1) = nbr_diff3/(128*Nbr_trial_max);
     nbr_diff_vect4(SNR+1) = nbr_diff4/(128*Nbr_trial_max);
 end
+
+
 figure
 semilogy((0:15),nbr_diff_vect);
 hold on
