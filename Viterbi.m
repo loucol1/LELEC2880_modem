@@ -2,7 +2,7 @@
 close all;
 clear all;
 load('CIR.mat', 'h');
-load('save_estimate_H');
+load('save_estimate_H.mat');
 
 IRchannel = h;
 test_H = fft(h, 128);
@@ -73,7 +73,7 @@ for SNR = 0:15
         nbr_diff3 = nbr_diff3+sum(abs(u_receive3-u));
         
         %Viterbi avec notre estimate du channel
-        u_receive4 = viterbi_decode(Y_first, save_estimate_H(SNR+1,:));
+        u_receive4 = viterbi_decode(Y_first, save_estimate_H(SNR+1,:));       
         nbr_diff4 = nbr_diff4+sum(abs(u_receive4-u));
         
         %sans Viterbi
