@@ -19,19 +19,19 @@ L=8;%longeur du canal
 
 %%Part3
 snr = 20;
-nbr_iter = 100;
+nbr_iter = 500;
 Nbr_symbol = 10;
 save_snr_H = zeros(snr, N, Nbr_symbol);
 MSE = zeros(snr,Nbr_symbol); 
 
 
 
-
 for nbr_symbol = 1:Nbr_symbol
     for SNR = 0:snr
         estimate_H_moyen = zeros(1,N);
+        MSE_moyen = 0;
         for iter = 1:nbr_iter
-            matrix = ones(Nbr_symbol, N);
+            matrix = ones(nbr_symbol, N);
             
             %creation du training sequence
             exposant = (0:N-1);
@@ -39,22 +39,35 @@ for nbr_symbol = 1:Nbr_symbol
             matrix = matrix.*Ik;
             
             %convolution avec le channel + bruit
-            matrix_conv = matrix.*(repmat(H, Nbr_symbol,1));
-            for a = [1:Nbr_symbol]
-                matrix_conv(a,:) = add_awgn_noise(matrix_conv(a,:), snr);
+            matrix_conv = matrix.*(repmat(H, nbr_symbol,1));
+            for a = [1:nbr_symbol]
+                matrix_conv(a,:) = add_awgn_noise(matrix_conv(a,:), SNR);
             end
             
             estimate_H = matrix_conv./matrix;
-            estimate_H_sum = sum(estimate_H,1)/Nbr_symbol;
+            estimate_H_sum = sum(estimate_H,1)/nbr_symbol;
             
-            estimate_H_moyen = estimate_H_moyen + estimate_H_sum;
+            %estimate_H_moyen = estimate_H_moyen + estimate_H_sum;
+            MSE_moyen = MSE_moyen+sum(abs(estimate_H_sum-H).^2)/length(H);
         end
         %pour chaque snr on a un estimé de channel
-        estimate_H_moyen = estimate_H_moyen/nbr_iter;
-        MSE(snr+1,nbr_symbol) = sum(abs(estimate_H_moyen-H).^2);
+        MSE_moyen = MSE_moyen/nbr_iter;
+        %estimate_H_moyen = estimate_H_moyen/nbr_iter;
+        MSE(SNR+1,nbr_symbol) = MSE_moyen;
     end
 end
 plot((0:SNR), MSE(:,1))
+hold on 
+plot((0:SNR), MSE(:,2))
+hold on 
+plot((0:SNR), MSE(:,4))
+hold on 
+plot((0:SNR), MSE(:,10))
+xlabel('SNR[dB]')
+ylabel('MSE')
+title('MSE of estimate H function of SNR for different number of sent preambules')
+legend('1 preambule', '2 preambules', '4 preambules', '10 preambules')
+
 
     
 
