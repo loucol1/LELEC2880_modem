@@ -1,4 +1,3 @@
-%coucou Louis :)
 close all;
 clear all;
 load('CIR.mat', 'h');
@@ -6,30 +5,24 @@ IRchannel = h;
 test_H = fft(h, 128);
 
 global N;
-N = 128;
+N = 128; %number of subcarriers
 global Lc;
-Lc = 16;
+Lc = 16; %length of cyclic prefix
 global nbr_OFDM_symbols;
 nbr_OFDM_symbols = 100;
 global Pmax;
-SNR = 10; %dB
-H = fft(h, 128);
+SNR = 10; %SNR in dB
+H = fft(h, N);
 [vecteur_ofdm_symbol, vector_data_brut]  = vecteur_ofdm_symbols();
 L = length(vecteur_ofdm_symbol);
 SNR = 10^(SNR/10);
 
 Esym = sum(abs(vecteur_ofdm_symbol).^2)/(L); %
 Pmax = (sum(abs(vecteur_ofdm_symbol).^2))/nbr_OFDM_symbols;
-N0 = (Esym)/(SNR*2); %variance du bruit, /2 partie imaginaire et r�elle
+N0 = (Esym)/(SNR*2); %variance du bruit, /2 partie imaginaire et reelle
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-
-
-
-
-
+SER_SNR()
 
 
 
@@ -58,17 +51,17 @@ end
 %return the symbol error rate
 function symbol_error_rate = OFDM_simulation(SNR)
 [vecteur_ofdm_symbol, vector_data_brut] = vecteur_ofdm_symbols();
-vecteur_after_chanel = channel(vecteur_ofdm_symbol, SNR);
+vecteur_after_chanel = add_awgn_noise(vecteur_ofdm_symbol, SNR);
 receive_decode = decoder(vecteur_after_chanel);
 symbol_error_rate = calcul_error(vector_data_brut, detection(receive_decode));
 end
 
 
 %produce an ofdm symbol and the ofdm symbol without cp corresponding
-%cp est un vecteur de cyclic prefix de taille Lc = 16
+%cp is a vector of cyclix prefix of length Lc = 16
 function [symbole_ifft, symbole_without_cp] = OFDM_symbol(cp)
 global N;
-%cr�ation de la sequence de symboles � envoyer
+%creation of the symbols to send
 QAM = [1+1i, 1-1i, -1+1i, -1-1i];
 random = randi([1,4], 1, N);
 s = zeros(1,N);
@@ -76,14 +69,14 @@ for a = 1:N
     s(a) = QAM(random(a));
 end
 symbole_without_cp = s;
-%calcul de la TF inverse
+%computation of the IFT
 inter = ifft(s(1:N));
 
-%ajoute le cyclic prefix
+%add of the cyclic prefix
 symbole_ifft = [cp, inter];
 end
 
-%produce a vector of nbr_OFDM_symbols
+%produce a vector of length nbr_OFDM_symbols
 function [vecteur_ofdm_symbol, vector_data_brut]  = vecteur_ofdm_symbols()
 global N;
 global Lc;
@@ -102,34 +95,17 @@ end
 end
 
 
-function vector_corrupted = channel(vector_clean, SNR)
-vector_corrupted = add_awgn_noise(vector_clean, SNR);
-% SNR_naturel = 10^(SNR/20);
-% amplitude = sqrt(2);%l'amplitude d un symbole
-% noise_variance = amplitude^2/SNR_naturel;
-% noise_variance = noise_variance/2;
-% vector_noise_real = normrnd(0, noise_variance, [1, length(vector_clean)]);
-% vector_noise_imaginary = 1i*normrnd(0, noise_variance, [1, length(vector_clean)]);
-% vector_noise = vector_noise_real + vector_noise_imaginary;
-% vector_corrupted = vector_clean + vector_noise;
-end
-
 function y = add_awgn_noise(x, SNR)
 L = length(x);
 SNR = 10^(SNR/10);
 Esym = sum(abs(x).^2)/(L);
 N0 = Esym/SNR;
-% if(isreal(x))
-%     noiseSigma = sqrt(N0);
-%     n = noiseSigma*randn(1,L);
-% else
 noiseSigma = sqrt(N0/2);
 n = noiseSigma*(randn(1,L) + 1i*randn(1,L));
-%end
 y = x + n;
 end
 
-
+%remove the cyclic prefix and compute the fft
 function y = decoder(r)
 global N;
 global Lc;
@@ -137,7 +113,6 @@ global nbr_OFDM_symbols;
 y = zeros(1, nbr_OFDM_symbols*N);
 without_cp = zeros(1, N);
 calcul_fft = zeros(1, N);
-%retire le cyclic prefix et calcule la fft
 for a = 1:nbr_OFDM_symbols
     without_cp = r(a*(Lc+N)-N+1 : a*(N+Lc));
     calcul_fft = fft(without_cp);
@@ -145,6 +120,8 @@ for a = 1:nbr_OFDM_symbols
 end
 end
 
+%dectect in which quadrant is each symbol of vector_complexe
+%The value of the return vector are : 1+1i, 1-1i, -1+1i, -1-1i
 function adjust_vector = detection(vector_complexe)
 adjust_vector = zeros(1, length(vector_complexe));
 for a= 1:length(vector_complexe)
@@ -165,6 +142,7 @@ for a= 1:length(vector_complexe)
 end
 end
 
+%compute the symbol error rate of the sent sequence
 function symbol_error_rate = calcul_error(send, received)
 nbr_error = sum(send ~= received);
 symbol_error_rate = nbr_error/length(send);
